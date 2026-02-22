@@ -1,22 +1,7 @@
 import streamlit as st
-
-# PDF library (fpdf/ fpdf2) must be installed in the environment used by Streamlit.
-# On Streamlit Cloud add "fpdf" to your requirements.txt so deployments include it.
-try:
-    from fpdf import FPDF
-    from fpdf.errors import FPDFException
-except ImportError as e:
-    # Gracefully handle missing dependency during development or deploy
-    st = None  # prevent reference errors if streamlit isn't available yet
-    raise ImportError(
-        "fpdf could not be imported. Install with `pip install fpdf` "
-        "and ensure it's listed in requirements.txt for Streamlit deployments."
-    )
-from io import BytesIO
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from groq import Groq
-
 
 # ---------------------------
 # 🔑 ENTER YOUR GEMINI API KEY HERE
@@ -25,11 +10,11 @@ GROQ_API_KEY = "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"
 
 client = Groq(api_key=GROQ_API_KEY)
 
+
 # ---------------------------
 # 🎯 AI Resume Generator
 # ---------------------------
 def generate_resume(name, skills, projects, experience, education):
-
     prompt = f"""
     Create a professional ATS-friendly resume.
 
@@ -55,7 +40,6 @@ def generate_resume(name, skills, projects, experience, education):
 # 💌 AI Cover Letter Generator
 # ---------------------------
 def generate_cover_letter(name, job_role, skills):
-
     prompt = f"""
     Write a professional cover letter for {job_role}.
     Candidate Name: {name}
@@ -77,19 +61,19 @@ def generate_cover_letter(name, job_role, skills):
 # ---------------------------
 def generate_portfolio(name, skills, projects, experience="", education=""):
     """Generate a professional portfolio HTML with enhanced styling and layout."""
-    
+
     skills_list = [s.strip() for s in skills.split(",") if s.strip()]
     skills_html = "".join([
         f'<span class="skill-badge">{skill}</span>'
         for skill in skills_list
     ])
-    
+
     projects_list = [p.strip() for p in projects.split("\n") if p.strip()]
     projects_html = "".join([
         f'<div class="project-item"><strong>• {proj}</strong></div>'
         for proj in projects_list
     ])
-    
+
     html_template = f"""
     <!DOCTYPE html>
     <html lang="en">
@@ -217,76 +201,13 @@ def generate_portfolio(name, skills, projects, experience="", education=""):
     return html_template
 
 
-# ---------------------------
-# 📄 PDF Generation Helpers
-# ---------------------------
 
-def create_pdf_bytes(content: str) -> bytes | None:
-    """Return PDF data for the given text or None if generation fails.
-    
-    Handles character encoding, margin sizing, and intelligent text wrapping
-    to prevent FPDF layout errors with very long words or lines.
-    """
-    try:
-        pdf = FPDF()
-        pdf.add_page()
-        pdf.set_auto_page_break(auto=True, margin=8)
-        pdf.set_font("Arial", size=9)
-
-        # FPDF only supports latin-1; replace unsupported characters
-        for line in content.split("\n"):
-            cleaned = line.encode("latin-1", "replace").decode("latin-1").strip()
-            
-            if not cleaned:
-                pdf.ln(3)
-                continue
-            
-            # Maximum width for text (considering margins)
-            max_width = 190  # A4 page width minus margins
-            
-            # Split into words and intelligently wrap
-            words = cleaned.split(" ")
-            current_line = ""
-            
-            for word in words:
-                # If a single word is extremely long, hyphenate it
-                if len(word) > 40:
-                    # Break very long words into chunks
-                    while len(word) > 35:
-                        current_line += word[:35]
-                        pdf.multi_cell(0, 5, current_line)
-                        current_line = ""
-                        word = word[35:]
-                
-                test_line = (current_line + " " + word).strip() if current_line else word
-                
-                # Try to fit the line
-                if len(test_line) > 90:  # Conservative limit
-                    if current_line:
-                        pdf.multi_cell(0, 5, current_line)
-                    current_line = word
-                else:
-                    current_line = test_line
-            
-            if current_line:
-                pdf.multi_cell(0, 5, current_line)
-
-        buf = BytesIO()
-        pdf.output(buf)
-        return buf.getvalue()
-    except FPDFException as fe:
-        st.error(f"PDF generation error: {fe}. Try reducing text length.")
-        return None
-    except Exception as exc:
-        st.error(f"Unexpected PDF error: {exc}")
-        return None
 
 
 # ---------------------------
 # 🤖 Job Match Score (ML)
 # ---------------------------
 def job_match_score(resume_text, job_description):
-          
     vectorizer = TfidfVectorizer()
     vectors = vectorizer.fit_transform([resume_text, job_description])
 
@@ -317,7 +238,6 @@ job_role = st.text_input("Target Job Role")
 job_description = st.text_area("Paste Job Description (Optional)")
 
 if st.button("Generate Resume & Portfolio"):
-
     # Generate and store in session state
     st.session_state.resume = generate_resume(name, skills, projects, experience, education)
     st.session_state.cover_letter = generate_cover_letter(name, job_role, skills)
@@ -340,7 +260,7 @@ if st.session_state.resume:
     st.divider()
     st.subheader("📥 Download Your Files")
     col1, col2, col3 = st.columns(3)
-    
+
     with col1:
         st.download_button(
             "📄 Resume (CV)",
@@ -348,7 +268,7 @@ if st.session_state.resume:
             file_name="AI_Resume.txt",
             mime="text/plain",
         )
-    
+
     with col2:
         st.download_button(
             "📝 Cover Letter",
@@ -356,7 +276,7 @@ if st.session_state.resume:
             file_name="AI_Cover_Letter.txt",
             mime="text/plain",
         )
-    
+
     with col3:
         st.download_button(
             "🌐 Portfolio",
