@@ -1,6 +1,17 @@
 import streamlit as st
-from fpdf import FPDF
-from fpdf.errors import FPDFException
+
+# PDF library (fpdf/ fpdf2) must be installed in the environment used by Streamlit.
+# On Streamlit Cloud add "fpdf" to your requirements.txt so deployments include it.
+try:
+    from fpdf import FPDF
+    from fpdf.errors import FPDFException
+except ImportError as e:
+    # Gracefully handle missing dependency during development or deploy
+    st = None  # prevent reference errors if streamlit isn't available yet
+    raise ImportError(
+        "fpdf could not be imported. Install with `pip install fpdf` "
+        "and ensure it's listed in requirements.txt for Streamlit deployments."
+    )
 from io import BytesIO
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
@@ -287,7 +298,7 @@ def job_match_score(resume_text, job_description):
 # 🌟 Streamlit UI
 # ---------------------------
 st.set_page_config(page_title="AI Resume & Portfolio Builder", layout="wide")
-st.title("🚀 AI Resume & Portfolio Builder (GANESH(gani))")
+st.title("🚀 AI Resume & Portfolio Builder ")
 
 # Initialize session state to persist data after download
 if "resume" not in st.session_state:
